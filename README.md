@@ -5,6 +5,8 @@ JIRA Command Line Interface
 `python3 -m pip install -r requirements.txt`
 
 ### Run the script
+- python akcli.py -h
+- 
 `
 
 	usage: JIRA Command Line Interface [-h] [--issueKey ISSUEKEY] [--projectKey PROJECTKEY] [--create]
