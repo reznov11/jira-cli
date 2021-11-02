@@ -7,6 +7,11 @@ JIRA Command Line Interface
 ### Run the script
 `
 
+	usage: JIRA Command Line Interface [-h] [--issueKey ISSUEKEY] [--projectKey PROJECTKEY] [--create]
+	                                   [--dump [{issues,projects}]] [--delete] [--close] [--transition]
+	                                   [--transitionId {11,21,31,41}] [--comment]
+	                                   [--commentBody COMMENTBODY]
+	                                   {issue} ...
 	positional arguments:
 	  {issue}               sub commands for creating issue
 	    issue               create issue is sub-command with sub-commands
