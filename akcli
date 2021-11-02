@@ -25,8 +25,7 @@ class JiraCli:
       'description': self.args.issueDescription,
       'issuetype': {'name': self.args.issueType},
     }
-    new_issue = self.auth().create_issue(fields=issue_dict)
-    return new_issue
+    self.auth.create_issue(fields=issue_dict)
 
   def dump(self):
     '''
@@ -34,10 +33,10 @@ class JiraCli:
       issues or projects
     '''
     if self.args.dump == 'projects':
-      projects = self.auth().projects()
+      projects = self.auth.projects()
       print(projects)
     else:
-      issues = self.auth().issue(self.args.issueKey)
+      issues = self.auth.issue(self.args.issueKey)
       print(issues)
 
   def transition(self):
@@ -49,16 +48,16 @@ class JiraCli:
       Done = 41
     '''
     if self.args.transitionId:
-      issue = self.auth().issue(self.args.issueKey)
-      transitions = self.auth().transitions(issue)
-      self.auth().transition_issue(self.args.issueKey, self.args.transitionId)
+      issue = self.auth.issue(self.args.issueKey)
+      transitions = self.auth.transitions(issue)
+      self.auth.transition_issue(self.args.issueKey, self.args.transitionId)
 
   def delete(self):
     '''
       Delete an issue by the given issueKey
     '''
     if self.args.issueKey:
-      issue = self.auth().issue(self.args.issueKey)
+      issue = self.auth.issue(self.args.issueKey)
       issue.delete()
 
   def close(self):
@@ -66,22 +65,23 @@ class JiraCli:
       Close an issue by sitting it status to Done
     '''
     if self.args.issueKey:
-      issue = self.auth().issue(self.args.issueKey)
-      transitions = self.auth().transitions(issue)
-      self.auth().transition_issue(self.args.issueKey, '41')
+      issue = self.auth.issue(self.args.issueKey)
+      transitions = self.auth.transitions(issue)
+      self.auth.transition_issue(self.args.issueKey, '41')
 
   def comment(self):
     '''
       Comment on issue
     '''
     if self.args.issueKey:
-      self.auth().add_comment(self.args.issueKey, self.args.commentBody)
+      self.auth.add_comment(self.args.issueKey, self.args.commentBody)
 
+  @property
   def auth(self):
     '''
       Basic authorization for JIRA
     '''
-    auth_jira = JIRA('https://jira-tt-123.atlassian.net', basic_auth=(AUTH_USER, AUTH_TOKEN))
+    auth_jira = JIRA(MAIN_URL, basic_auth=(AUTH_USER, AUTH_TOKEN))
     return auth_jira
 
   def getter(self, args):
