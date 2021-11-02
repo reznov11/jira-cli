@@ -6,6 +6,7 @@ JIRA Command Line Interface
 
 ### Run the script
 `
+
 	positional arguments:
 	  {issue}               sub commands for creating issue
 	    issue               create issue is sub-command with sub-commands
