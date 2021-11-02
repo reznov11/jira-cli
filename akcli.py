@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/python
 
-
-import requests
 import argparse
 from jira import JIRA
 from config.settings import *
