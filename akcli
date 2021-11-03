@@ -2,6 +2,7 @@
 
 import argparse
 from jira import JIRA
+import dateutil.parser as dtime
 from config.settings import *
 from collections import namedtuple
 
@@ -36,7 +37,7 @@ class JiraCli:
       projects = self.auth.projects()
       print(projects)
     else:
-      issues = self.auth.issue(self.args.issueKey)
+      issues = self.auth.search_issues(f'project={self.args.projectKey}')
       for issue in issues:
         created_dtime = self.dtime_formater(issue.fields.created)
         content = f'Ticket number = {issue}\n'
@@ -162,9 +163,9 @@ if __name__ == '__main__':
   # Do transition
   parser.add_argument('--transition', action='store_true', help='transit an issue')
   parser.add_argument(
-  	'--transitionId',
-  	type=int,
-  	dest="transitionId",
+    '--transitionId',
+    type=int,
+    dest="transitionId",
     choices=[11, 21, 31, 41],
     help='transit an issue'
   )
