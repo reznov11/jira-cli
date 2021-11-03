@@ -37,7 +37,18 @@ class JiraCli:
       print(projects)
     else:
       issues = self.auth.issue(self.args.issueKey)
-      print(issues)
+      for issue in issues:
+        created_dtime = self.dtime_formater(issue.fields.created)
+        content = f'Ticket number = {issue}\n'
+        content += f'Creator = {issue.fields.creator}\n'
+        content += f'IssueType = {issue.fields.issuetype.name}\n'
+        content += f'Status = {issue.fields.status.name}\n'
+        content += f'Summary = {issue.fields.summary}\n'
+        content += f'Description = {issue.fields.description}\n'
+        content += f'Votes = {issue.fields.votes.votes}\n'
+        content += f'Created = {created_dtime.strftime("%d-%m-%Y %H:%M:%S")}\n'
+        content += f'========================================\n'
+        print(content)
 
   def transition(self):
     '''
