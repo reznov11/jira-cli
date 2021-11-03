@@ -94,6 +94,9 @@ class JiraCli:
     '''
     auth_jira = JIRA(MAIN_URL, basic_auth=(AUTH_USER, AUTH_TOKEN))
     return auth_jira
+  
+  def dtime_formater(self, date) -> str:
+    return dtime.parse(date)
 
   def getter(self, args):
     '''
