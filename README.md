@@ -4,7 +4,28 @@ JIRA Command Line Interface
 ### Install requirements
 `python3 -m pip install -r requirements.txt`
 
-### Run the script
+### Dump projects
+`akcli --dump projects`
+
+### Dump issues of a project
+`akcli --dump issues --projectKey=PUT PROJECT KEY`
+
+### Dump specific issue
+`akcli --dump issues --issueKey=PUT ISSUE KEY`
+
+### Create an issue
+`akcli --create issue --issueSummary='' --issueDescription='' --issueType=Task --projectId=PUT PROJECT KEY`
+
+### Transit an issue
+
+*transitionId* is the code of the transition, for example:
+- To Do = 11
+- In Progress = 21
+- Done = 31
+`akcli --transition --transitionId=PUT STATUS CODE --issueKey=`
+
+
+### Get help
 `python akcli.py -h`
 
 `
@@ -14,6 +35,7 @@ JIRA Command Line Interface
 	                                   [--transitionId {11,21,31,41}] [--comment]
 	                                   [--commentBody COMMENTBODY]
 	                                   {issue} ...
+
 	positional arguments:
 	  {issue}               sub commands for creating issue
 	    issue               create issue is sub-command with sub-commands
