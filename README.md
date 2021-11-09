@@ -18,7 +18,7 @@ JIRA Command Line Interface
 
 ### Transit an issue
 
-*transitionId* is the code of the transition, for example:
+**transitionId** is the code of the transition, for example:
 - To Do = 11
 - In Progress = 21
 - Done = 31
