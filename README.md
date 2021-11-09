@@ -22,8 +22,17 @@ JIRA Command Line Interface
 - To Do = 11
 - In Progress = 21
 - Done = 31
+
 `akcli --transition --transitionId=PUT STATUS CODE --issueKey=`
 
+### Comment on issue
+`akcli --comment --commentBody='' --issueKey=PUT ISSUE KEY`
+
+### Close an issue
+`akcli --close --issueKey=PUT ISSUE KEY`
+
+### Delete an issue
+`akcli --delete --issueKey=PUT ISSUE KEY`
 
 ### Get help
 `python akcli.py -h`
