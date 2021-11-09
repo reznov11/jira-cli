@@ -106,7 +106,7 @@ class JiraCli:
       Comment on issue
     '''
     if self.args.issueKey:
-      self.auth.add_comment(self.args.issueKey, self.args.commentBody)
+      self.auth.add_comment(self.args.issueKey, self.args.commentBody, visibility={'type': 'role', 'value': 'Administrator'})
 
   @property
   def auth(self):
