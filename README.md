@@ -14,7 +14,7 @@ JIRA Command Line Interface
 `akcli --dump issues --issueKey=PUT ISSUE KEY`
 
 ### Create an issue
-`akcli --create issue --issueSummary='' --issueDescription='' --issueType=Task --projectId=PUT PROJECT KEY`
+`akcli --create issue --issueSummary=YOUR SUMMARY --issueDescription=YOUR DESCRIPTION --issueType=TYPE OF ISSUE --projectId=PUT PROJECT KEY`
 
 ### Transit an issue
 
@@ -26,7 +26,7 @@ JIRA Command Line Interface
 `akcli --transition --transitionId=PUT STATUS CODE --issueKey=`
 
 ### Comment on issue
-`akcli --comment --commentBody='' --issueKey=PUT ISSUE KEY`
+`akcli --comment --commentBody=YOUR COMMENT --issueKey=PUT ISSUE KEY`
 
 ### Close an issue
 `akcli --close --issueKey=PUT ISSUE KEY`
