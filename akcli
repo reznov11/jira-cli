@@ -35,21 +35,41 @@ class JiraCli:
     '''
     if self.args.dump == 'projects':
       projects = self.auth.projects()
-      print(projects)
+      for project in projects:
+        text = f'ID = {project.id}\n'
+        text += f'Key = {project.key}\n'
+        text += f'Name = {project.name}\n'
+        text += '-------------------------'
+        print(text)
     else:
-      issues = self.auth.search_issues(f'project={self.args.projectKey}')
-      for issue in issues:
-        created_dtime = self.dtime_formater(issue.fields.created)
-        content = f'Ticket number = {issue}\n'
-        content += f'Creator = {issue.fields.creator}\n'
-        content += f'IssueType = {issue.fields.issuetype.name}\n'
-        content += f'Status = {issue.fields.status.name}\n'
-        content += f'Summary = {issue.fields.summary}\n'
-        content += f'Description = {issue.fields.description}\n'
-        content += f'Votes = {issue.fields.votes.votes}\n'
-        content += f'Created = {created_dtime.strftime("%d-%m-%Y %H:%M:%S")}\n'
-        content += f'========================================\n'
-        print(content)
+      if self.args.issueKey and not self.args.projectKey:
+        issues = self.auth.issue(self.args.issueKey)
+      else:
+        issues = self.auth.search_issues(f'project={self.args.projectKey}')
+
+      if isinstance(issues, list):
+        for issue in issues:
+          created_dtime = self.dtime_formater(issue.fields.created)
+          content = f'Ticket number = {issue}\n'
+          content += f'Creator = {issue.fields.creator}\n'
+          content += f'IssueType = {issue.fields.issuetype.name}\n'
+          content += f'Status = {issue.fields.status.name}\n'
+          content += f'Summary = {issue.fields.summary}\n'
+          content += f'Description = {issue.fields.description}\n'
+          content += f'Votes = {issue.fields.votes.votes}\n'
+          content += f'Created = {created_dtime.strftime("%d-%m-%Y %H:%M:%S")}\n'
+          content += f'========================================\n'
+          print(content)
+      else:
+        single_issue = f'Project name = {issues.fields.project}\n'
+        single_issue += f'Ticket number = {issues}\n'
+        single_issue += f'Creator = {issues.fields.creator}\n'
+        single_issue += f'IssueType = {issues.fields.issuetype.name}\n'
+        single_issue += f'Status = {issues.fields.status.name}\n'
+        single_issue += f'Summary = {issues.fields.summary}\n'
+        single_issue += f'Description = {issues.fields.description}\n'
+        single_issue += f'Issue Link = {MAIN_URL}rest/api/3/issue/{self.args.issueKey}'
+        print(single_issue)
 
   def transition(self):
     '''
@@ -57,7 +77,7 @@ class JiraCli:
       To Do = 11
       In Progress = 21
       In Review = 31
-      Done = 41
+      Done = 41 or 31
     '''
     if self.args.transitionId:
       issue = self.auth.issue(self.args.issueKey)
@@ -79,7 +99,7 @@ class JiraCli:
     if self.args.issueKey:
       issue = self.auth.issue(self.args.issueKey)
       transitions = self.auth.transitions(issue)
-      self.auth.transition_issue(self.args.issueKey, '41')
+      self.auth.transition_issue(self.args.issueKey, '31')
 
   def comment(self):
     '''
