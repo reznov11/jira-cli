@@ -40,6 +40,7 @@ JIRA Command Line Interface
 ### Filter
 
 **Get only my issues**
+
 `akcli --filter --myIssues --projectKey=PUT PROJECT KEY`
 
 
