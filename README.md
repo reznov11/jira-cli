@@ -44,16 +44,20 @@ JIRA Command Line Interface
 
 
 If you want to get from multi projects, you can type other projects keys like the following:
+
 `akcli --filter --myIssues --projectKey="FIRST KEY, SECOND KEY"`
 
 **Get issues by type**
+
 `akcli --filter --issuetype="Task, New Feature"`
 
 
 
 **Get issues by text**
+
 `akcli --filter --text='TYPE ISSUE TITLE, DESCRIPTION OR ANYTHING'`
 
 
 **Get issues by status**
+
 `akcli --filter --status='To Do, In progress'`
