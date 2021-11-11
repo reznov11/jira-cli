@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import time
 import argparse
 from jira import JIRA
 import dateutil.parser as dtime
@@ -21,12 +22,13 @@ class JiraCli:
       but in the upcoming versions I'll resolve the problem.
     '''
     issue_dict = {
-      'project': {'key': self.args.projectId},
+      'project': {'key': self.args.projectKey},
       'summary': self.args.issueSummary or '',
       'description': self.args.issueDescription,
       'issuetype': {'name': self.args.issueType},
     }
-    self.auth.create_issue(fields=issue_dict)
+    new_issue = self.auth.create_issue(fields=issue_dict)
+    print('\nIssue created successfully, issue key:', new_issue, '\n')
 
   def dump(self):
     '''
@@ -45,31 +47,9 @@ class JiraCli:
       if self.args.issueKey and not self.args.projectKey:
         issues = self.auth.issue(self.args.issueKey)
       else:
-        issues = self.auth.search_issues(f'project={self.args.projectKey}')
+        issues = self.global_search(jql_query=f'project={self.args.projectKey}')
 
-      if isinstance(issues, list):
-        for issue in issues:
-          created_dtime = self.dtime_formater(issue.fields.created)
-          content = f'Ticket number = {issue}\n'
-          content += f'Creator = {issue.fields.creator}\n'
-          content += f'IssueType = {issue.fields.issuetype.name}\n'
-          content += f'Status = {issue.fields.status.name}\n'
-          content += f'Summary = {issue.fields.summary}\n'
-          content += f'Description = {issue.fields.description}\n'
-          content += f'Votes = {issue.fields.votes.votes}\n'
-          content += f'Created = {created_dtime.strftime("%d-%m-%Y %H:%M:%S")}\n'
-          content += f'========================================\n'
-          print(content)
-      else:
-        single_issue = f'Project name = {issues.fields.project}\n'
-        single_issue += f'Ticket number = {issues}\n'
-        single_issue += f'Creator = {issues.fields.creator}\n'
-        single_issue += f'IssueType = {issues.fields.issuetype.name}\n'
-        single_issue += f'Status = {issues.fields.status.name}\n'
-        single_issue += f'Summary = {issues.fields.summary}\n'
-        single_issue += f'Description = {issues.fields.description}\n'
-        single_issue += f'Issue Link = {MAIN_URL}rest/api/3/issue/{self.args.issueKey}'
-        print(single_issue)
+      self.get_data(issues=issues)
 
   def transition(self):
     '''
@@ -107,6 +87,90 @@ class JiraCli:
     '''
     if self.args.issueKey:
       self.auth.add_comment(self.args.issueKey, self.args.commentBody, visibility={'type': 'role', 'value': 'Administrator'})
+
+  def global_search(self, jql_query):
+    query = self.auth.search_issues(jql_query)
+    self.get_data(query)
+
+  def filter(self):
+    fi = f''
+    
+    if self.args.projectKey:
+      progs = [pr.replace(" ", '', 1) for pr in self.args.projectKey.split(',')]
+
+      if len(progs) > 1:
+        fi += f'project in {tuple(progs)} '
+
+      else:
+        fi += f'project={self.args.projectKey} '
+
+      if self.args.text:
+        fi += f'AND text ~ "{self.args.text}"'
+
+      if self.args.status:
+
+        if not isinstance(self.args.status, str):
+          print('Status must be a list of strings seperated by comma, for example: "To Do, In progress"')
+          return
+
+        status = [st.replace(" ", '', 1) for st in self.args.status.split(',')]
+
+        if len(status) > 1:
+          fi += f' AND status in {tuple(status)}'
+
+        else:
+          fi += f' AND status in ("{self.args.status}")'
+
+      if self.args.myIssues:
+        fi += f' AND assignee in (currentUser())'
+
+      if self.args.issuetype:
+
+        if not isinstance(self.args.issuetype, str):
+          print('Issue types must be a list of strings seperated by comma, for example: "Task, Bug"')
+          return
+
+        types = [tp.replace(" ", '', 1) for tp in self.args.issuetype.split(',')]
+
+        if len(types) > 1:
+          fi += f' AND issuetype in {tuple(types)}'
+
+        else:
+          fi += f' AND issuetype in ("{self.args.issuetype}")'
+
+      print("Filter:", fi, '\n')
+      self.global_search(fi)
+      # return fi
+    else:
+      print('--projectKey is required.')
+      return
+
+  def get_data(self, issues):
+    if isinstance(issues, list):
+      print('Issues found:', len(issues), '\n')
+      time.sleep(3)
+      for issue in issues:
+        created_dtime = self.dtime_formater(issue.fields.created)
+        content = f'Ticket number = {issue}\n'
+        content += f'Creator = {issue.fields.creator}\n'
+        content += f'IssueType = {issue.fields.issuetype.name}\n'
+        content += f'Status = {issue.fields.status.name}\n'
+        content += f'Summary = {issue.fields.summary}\n'
+        content += f'Description = {issue.fields.description}\n'
+        content += f'Votes = {issue.fields.votes.votes}\n'
+        content += f'Created = {created_dtime.strftime("%d-%m-%Y %H:%M:%S")}\n'
+        content += f'========================================\n'
+        print(content)
+    else:
+      single_issue = f'Project name = {issues.fields.project}\n'
+      single_issue += f'Ticket number = {issues}\n'
+      single_issue += f'Creator = {issues.fields.creator}\n'
+      single_issue += f'IssueType = {issues.fields.issuetype.name}\n'
+      single_issue += f'Status = {issues.fields.status.name}\n'
+      single_issue += f'Summary = {issues.fields.summary}\n'
+      single_issue += f'Description = {issues.fields.description}\n'
+      single_issue += f'Issue Link = {MAIN_URL}rest/api/3/issue/{self.args.issueKey}'
+      print(single_issue)
 
   @property
   def auth(self):
@@ -149,6 +213,9 @@ def main_func(args):
   if args.transition:
     akcli.transition()
 
+  if args.filter:
+    akcli.filter()
+
 
 if __name__ == '__main__':
   # create the top-level parser
@@ -164,7 +231,6 @@ if __name__ == '__main__':
   sub_create.add_argument('--issueType', required=True, type=str, help='issue type')
   sub_create.add_argument('--issueDescription', required=True, type=str, help='issue description')
   sub_create.add_argument('--issueSummary', required=True, type=str, help='issue summary')
-  sub_create.add_argument('--projectId', required=True, type=str, help='project key')
 
   # Dump issue
   parser.add_argument('--dump',
@@ -193,6 +259,13 @@ if __name__ == '__main__':
   # Comment on issue
   parser.add_argument('--comment', action='store_true', help='comment on issue')
   parser.add_argument('--commentBody', dest="commentBody", help='comment body')
+
+  # Filter
+  parser.add_argument('--filter', action='store_true', help='Advanced filter')
+  parser.add_argument('--issuetype', help='Filter by issue type')
+  parser.add_argument('--text', help='Filter by text or description')
+  parser.add_argument('--myIssues', help='Filter only my issues')
+  parser.add_argument('--status', help='Filter by status')
 
   args = parser.parse_args()
 
