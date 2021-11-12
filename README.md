@@ -31,6 +31,13 @@ JIRA Command Line Interface
 ### Comment on issue
 `akcli --comment --commentBody=YOUR COMMENT --issueKey=PUT ISSUE KEY`
 
+### Get issue watchers/users
+
+`akcli --watchers --issueKey=PUT ISSUE KEY --projectKey=PUT PROJECT KEY`
+
+### Assign issue to user
+`akcli --assign --accountId=USER ACCOUNT ID --issueKey=PUT ISSUE KEY`
+
 ### Close an issue
 `akcli --close --issueKey=PUT ISSUE KEY`
 
@@ -43,6 +50,9 @@ JIRA Command Line Interface
 
 `akcli --filter --myIssues --projectKey=PUT PROJECT KEY`
 
+**Get unassigned issues**
+
+`akcli --filter --unassigned --projectKey=PUT PROJECT KEY`
 
 If you want to get from multi projects, you can type other projects keys like the following:
 
@@ -50,15 +60,14 @@ If you want to get from multi projects, you can type other projects keys like th
 
 **Get issues by type**
 
-`akcli --filter --issuetype="Task, New Feature"`
-
+`akcli --filter --issuetype="Task, New Feature" --projectKey=PUT PROJECT KEY`
 
 
 **Get issues by text**
 
-`akcli --filter --text='TYPE ISSUE TITLE, DESCRIPTION OR ANYTHING'`
+`akcli --filter --text='TYPE ISSUE TITLE, DESCRIPTION OR ANYTHING' --projectKey=PUT PROJECT KEY`
 
 
 **Get issues by status**
 
-`akcli --filter --status='To Do, In progress'`
+`akcli --filter --status='To Do, In progress' --projectKey=PUT PROJECT KEY`
