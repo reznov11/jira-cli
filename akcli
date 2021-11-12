@@ -3,15 +3,15 @@
 import time
 import argparse
 from jira import JIRA
-import dateutil.parser as dtime
 from config.settings import *
+import dateutil.parser as dtime
 from collections import namedtuple
 
 
 class JiraCli:
   def __init__(self, args):
     self.args = args
-  
+
   def create(self):
     '''
       Create new issue by providing dictionary of data
@@ -45,11 +45,11 @@ class JiraCli:
         print(text)
     else:
       if self.args.issueKey and not self.args.projectKey:
-        issues = self.auth.issue(self.args.issueKey)
+        issues = self.get_issue(self.args.issueKey)
       else:
         issues = self.global_search(jql_query=f'project={self.args.projectKey}')
 
-      self.get_data(issues=issues)
+      self.get_data(issues=issues, single=False if isinstance(issues, list) else True)
 
   def transition(self):
     '''
@@ -86,15 +86,23 @@ class JiraCli:
       Comment on issue
     '''
     if self.args.issueKey:
-      self.auth.add_comment(self.args.issueKey, self.args.commentBody, visibility={'type': 'role', 'value': 'Administrator'})
+      self.auth.add_comment(self.args.issueKey, self.args.commentBody,
+                            visibility={'type': 'role', 'value': 'Administrator'})
 
-  def global_search(self, jql_query):
-    query = self.auth.search_issues(jql_query)
-    self.get_data(query)
+  def assign(self):
+    '''
+      Assign issue to new user
+    '''
+    if self.args.assign:
+      if not self.args.accountId:
+        print('Please type the user name who you want to assign the issue to.')
+        return
+      issue = self.get_issue(self.args.issueKey)
+      issue.update(assignee={'accountId': self.args.accountId})
 
   def filter(self):
     fi = f''
-    
+
     if self.args.projectKey:
       progs = [pr.replace(" ", '', 1) for pr in self.args.projectKey.split(',')]
 
@@ -122,7 +130,10 @@ class JiraCli:
           fi += f' AND status in ("{self.args.status}")'
 
       if self.args.myIssues:
-        fi += f' AND assignee in (currentUser())'
+        fi += f' AND reporter in (currentUser()) AND assignee in (currentUser())'
+
+      if self.args.unassigned:
+        fi += f' AND assignee in (EMPTY)'
 
       if self.args.issuetype:
 
@@ -145,8 +156,29 @@ class JiraCli:
       print('--projectKey is required.')
       return
 
-  def get_data(self, issues):
-    if isinstance(issues, list):
+  def get_issue(self, issue):
+    issue = self.auth.issue(issue)
+    return issue
+
+  def watchers(self):
+    if self.args.issueKey:
+      issue = self.get_issue(self.args.issueKey)
+      watcher = self.auth.watchers(issue)
+      print("Issue has {} watcher(s)".format(watcher.watchCount), '\n')
+      for watcher in watcher.watchers:
+        print('User name:', watcher)
+        print('User id:', watcher.accountId)
+        print('User email:', watcher.emailAddress)
+        print('--------------------')
+
+
+  def global_search(self, jql_query):
+    query = self.auth.search_issues(jql_query)
+    self.get_data(query)
+
+  def get_data(self, issues, single=False):
+
+    if not single:
       print('Issues found:', len(issues), '\n')
       time.sleep(3)
       for issue in issues:
@@ -161,7 +193,7 @@ class JiraCli:
         content += f'Created = {created_dtime.strftime("%d-%m-%Y %H:%M:%S")}\n'
         content += f'========================================\n'
         print(content)
-    else:
+    elif issues and single:
       single_issue = f'Project name = {issues.fields.project}\n'
       single_issue += f'Ticket number = {issues}\n'
       single_issue += f'Creator = {issues.fields.creator}\n'
@@ -179,7 +211,7 @@ class JiraCli:
     '''
     auth_jira = JIRA(MAIN_URL, basic_auth=(AUTH_USER, AUTH_TOKEN))
     return auth_jira
-  
+
   def dtime_formater(self, date) -> str:
     return dtime.parse(date)
 
@@ -188,6 +220,7 @@ class JiraCli:
       Future function to convert dictionary keys into properties
     '''
     return namedtuple('Dict', ' '.join(list(args.keys())))(**args)
+
 
 def main_func(args):
   """
@@ -213,6 +246,12 @@ def main_func(args):
   if args.transition:
     akcli.transition()
 
+  if args.assign:
+    akcli.assign()
+
+  if args.watchers:
+    akcli.watchers()
+
   if args.filter:
     akcli.filter()
 
@@ -222,7 +261,6 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(prog='JIRA Command Line Interface')
   parser.add_argument('--issueKey', dest="issueKey", help='issue key or id')
   parser.add_argument('--projectKey', dest="projectKey", help='issue key or id')
-
 
   # Create issue
   parser.add_argument('--create', action='store_true', help='create an issue')
@@ -234,11 +272,11 @@ if __name__ == '__main__':
 
   # Dump issue
   parser.add_argument('--dump',
-    default=None,
-    nargs='?',
-    choices=['issues', 'projects'],
-    help='dump projects, issues, (default: %(default)s)'
-  )
+                      default=None,
+                      nargs='?',
+                      choices=['issues', 'projects'],
+                      help='dump projects, issues, (default: %(default)s)'
+                      )
 
   # Delete issue
   parser.add_argument('--delete', action='store_true', help='delete an issue')
@@ -260,12 +298,20 @@ if __name__ == '__main__':
   parser.add_argument('--comment', action='store_true', help='comment on issue')
   parser.add_argument('--commentBody', dest="commentBody", help='comment body')
 
+  # Get watchers
+  parser.add_argument('--watchers', action='store_true', help="Get users of issue")
+
+  # Assign issue
+  parser.add_argument('--assign', action='store_true', help="Assign issue to a user")
+  parser.add_argument('--accountId', help='User ID to assign')
+
   # Filter
   parser.add_argument('--filter', action='store_true', help='Advanced filter')
   parser.add_argument('--issuetype', help='Filter by issue type')
   parser.add_argument('--text', help='Filter by text or description')
-  parser.add_argument('--myIssues', help='Filter only my issues')
+  parser.add_argument('--myIssues', action="store_true", help='Filter only my issues')
   parser.add_argument('--status', help='Filter by status')
+  parser.add_argument('--unassigned', action="store_true", help='Filter by unassigned issues')
 
   args = parser.parse_args()
 
