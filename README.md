@@ -44,7 +44,7 @@ JIRA Command Line Interface
 ### Delete an issue
 `akcli --delete --issueKey=PUT ISSUE KEY`
 
-### Filter
+# Filter
 
 **Get only my issues**
 
