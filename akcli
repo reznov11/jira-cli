@@ -171,7 +171,6 @@ class JiraCli:
         print('User email:', watcher.emailAddress)
         print('--------------------')
 
-
   def global_search(self, jql_query):
     query = self.auth.search_issues(jql_query)
     self.get_data(query)
