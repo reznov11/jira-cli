@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python
 
 import time
 import argparse
@@ -8,45 +8,18 @@ import dateutil.parser as dtime
 from collections import namedtuple
 
 
-class Status:
-  """
-    This is an enumeration class the contain all transitions status codes
-  """
-  TODO = 11
-  IN_PROGRESS = 21
-  CLOSED = 81
-  DONE = 61
-
-
 class JiraCli:
-  """
-    This is the class initializer
-    We pass only the user inputs to the class
-  """
   def __init__(self, args):
-    # Args are the user inputs
     self.args = args
 
-  @property
-  def auth(self):
-    """
-      Basic authorization for JIRA
-      The whole script is based on this property function
-      If something goes wrong with authorizatin, check this function.
-    """
-    auth_jira = JIRA(MAIN_URL, basic_auth=(AUTH_USER, AUTH_TOKEN))
-    return auth_jira
-
   def create(self):
-    """
+    '''
       Create new issue by providing dictionary of data
       Here I faced a problem, by using REST API service
       creating a new issue continuously returning 400 error from the server says
       transition and assigner missing, by that I decided to use jira library for the whole project
       but in the upcoming versions I'll resolve the problem.
-    """
-
-    # Issue default data
+    '''
     issue_dict = {
       'project': {'key': self.args.projectKey},
       'summary': self.args.issueSummary or '',
@@ -54,15 +27,13 @@ class JiraCli:
       'issuetype': {'name': self.args.issueType},
     }
     new_issue = self.auth.create_issue(fields=issue_dict)
-
-    # Here we print the new ticket issue to the user
     print('\nIssue created successfully, issue key:', new_issue, '\n')
 
   def dump(self):
-    """
+    '''
       Dump data of the given parameter
-      The function checks the input if it was issues or projects
-    """
+      issues or projects
+    '''
     if self.args.dump == 'projects':
       projects = self.auth.projects()
       for project in projects:
@@ -72,7 +43,6 @@ class JiraCli:
         text += '-------------------------'
         print(text)
     else:
-      # Here we check if the input is to get single or many issues
       if self.args.issueKey and not self.args.projectKey:
         issues = self.get_issue(self.args.issueKey)
       else:
@@ -81,43 +51,47 @@ class JiraCli:
       self.get_data(issues=issues, single=False if isinstance(issues, list) else True)
 
   def transition(self):
-    """
+    '''
       Implement transition on issue
-    """
+      To Do = 11
+      In Progress = 21
+      In Review = 31
+      Done = 41 or 31
+    '''
     if self.args.transitionId:
       issue = self.auth.issue(self.args.issueKey)
       transitions = self.auth.transitions(issue)
       self.auth.transition_issue(self.args.issueKey, self.args.transitionId)
 
   def delete(self):
-    """
+    '''
       Delete an issue by the given issueKey
-    """
+    '''
     if self.args.issueKey:
       issue = self.auth.issue(self.args.issueKey)
       issue.delete()
 
   def close(self):
-    """
+    '''
       Close an issue by sitting it status to Done
-    """
+    '''
     if self.args.issueKey:
       issue = self.auth.issue(self.args.issueKey)
       transitions = self.auth.transitions(issue)
-      self.auth.transition_issue(self.args.issueKey, Status.CLOSED)
+      self.auth.transition_issue(self.args.issueKey, '81')
 
   def comment(self):
-    """
+    '''
       Comment on issue
-    """
+    '''
     if self.args.issueKey:
       self.auth.add_comment(self.args.issueKey, self.args.commentBody)
                             #visibility={'type': 'role', 'value': 'Administrator'
 
   def assign(self):
-    """
+    '''
       Assign issue to new user
-    """
+    '''
     if self.args.assign:
       if not self.args.accountId:
         print('Please type the user name who you want to assign the issue to.')
@@ -126,24 +100,11 @@ class JiraCli:
       issue.update(assignee={'accountId': self.args.accountId})
 
   def filter(self):
-    """
-      We filter out issues by the following:
-      1 - Issue Types
-      2 - Transition Code
-      3 - By Text
-      4 - Assigned to
-      5 - Only my issues
-    :return: None
-    """
-
-    # filter by default is empty
-    # we check user inputs and according to them we build our filter
     fi = f''
 
     if self.args.projectKey:
       progs = [pr.replace(" ", '', 1) for pr in self.args.projectKey.split(',')]
 
-      # Check if
       if len(progs) > 1:
         fi += f'project in {tuple(progs)} '
 
@@ -241,14 +202,22 @@ class JiraCli:
       single_issue += f'Issue Link = {MAIN_URL}rest/api/3/issue/{self.args.issueKey}'
       print(single_issue)
 
+  @property
+  def auth(self):
+    '''
+      Basic authorization for JIRA
+    '''
+    auth_jira = JIRA(MAIN_URL, basic_auth=(AUTH_USER, AUTH_TOKEN))
+    return auth_jira
+
+  def dtime_formater(self, date) -> str:
+    return dtime.parse(date)
+
   def getter(self, args):
     '''
       Future function to convert dictionary keys into properties
     '''
     return namedtuple('Dict', ' '.join(list(args.keys())))(**args)
-
-  def dtime_formater(self, date) -> str:
-    return dtime.parse(date)
 
 
 def main_func(args):
