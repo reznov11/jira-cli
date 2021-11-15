@@ -44,6 +44,15 @@ JIRA Command Line Interface
 ### Delete an issue
 `akcli --delete --issueKey=PUT ISSUE KEY`
 
+### Limit issues
+
+If you want to limit issues, you can use the limit parameter also
+you can use offset from where to start the limit.
+
+`akcli --dump issues --projectKey=DO --limit=26`
+
+`akcli --dump issues --projectKey=DO --limit=26 --offset=2`
+
 # Filter
 
 **Get only my issues**
