@@ -3,9 +3,11 @@
 import time
 import argparse
 from jira import JIRA
+from typing import Any
 from config.settings import *
 import dateutil.parser as dtime
 from collections import namedtuple
+from jira.exceptions import JIRAError
 
 
 class JiraCli:
@@ -21,11 +23,12 @@ class JiraCli:
       but in the upcoming versions I'll resolve the problem.
     '''
     issue_dict = {
-      'project': {'key': self.args.projectKey},
+      'project': {'key': f"{self.args.projectKey}"},
       'summary': self.args.issueSummary or '',
       'description': self.args.issueDescription,
       'issuetype': {'name': self.args.issueType},
     }
+    print('Create issue:', issue_dict)
     new_issue = self.auth.create_issue(fields=issue_dict)
     print('\nIssue created successfully, issue key:', new_issue, '\n')
 
@@ -46,7 +49,7 @@ class JiraCli:
       if self.args.issueKey and not self.args.projectKey:
         issues = self.get_issue(self.args.issueKey)
       else:
-        issues = self.global_search(jql_query=f'project={self.args.projectKey}')
+        issues = self.global_search(jql_query=f"project='{self.args.projectKey}'")
 
       self.get_data(issues=issues, single=False if isinstance(issues, list) else True)
 
@@ -86,7 +89,7 @@ class JiraCli:
     '''
     if self.args.issueKey:
       self.auth.add_comment(self.args.issueKey, self.args.commentBody)
-                            #visibility={'type': 'role', 'value': 'Administrator'
+      # visibility={'type': 'role', 'value': 'Administrator'
 
   def assign(self):
     '''
@@ -103,13 +106,13 @@ class JiraCli:
     fi = f''
 
     if self.args.projectKey:
-      progs = [pr.replace(" ", '', 1) for pr in self.args.projectKey.split(',')]
+      progs = [f"{pr.replace(' ', '', 1)}" for pr in self.args.projectKey.split(',')]
 
       if len(progs) > 1:
         fi += f'project in {tuple(progs)} '
 
       else:
-        fi += f'project={self.args.projectKey} '
+        fi += f"project='{self.args.projectKey}' "
 
       if self.args.text:
         fi += f'AND text ~ "{self.args.text}"'
@@ -171,53 +174,79 @@ class JiraCli:
         print('--------------------')
 
   def global_search(self, jql_query):
-    query = self.auth.search_issues(jql_query)
+    '''
+      Here we check if the user provided a limit size to get issues
+    :param jql_query:
+    :return:
+    '''
+
+    # Think of an offset as page number
+    # from where to start the next object
+    offset = self.args.offset or 0
+    size = self.args.limit or 100
+
+    # maxResults represent maximum number of issues
+    # startAt represent the number from where to start the counting
+    query = self.auth.search_issues(jql_query, maxResults=size, startAt=offset)
     self.get_data(query)
 
   def get_data(self, issues, single=False):
 
     if not single:
+      print("Total:", issues.total)
       print('Issues found:', len(issues), '\n')
       time.sleep(3)
       for issue in issues:
-        created_dtime = self.dtime_formater(issue.fields.created)
-        content = f'Ticket number = {issue}\n'
-        content += f'Creator = {issue.fields.creator}\n'
-        content += f'IssueType = {issue.fields.issuetype.name}\n'
-        content += f'Status = {issue.fields.status.name}\n'
-        content += f'Summary = {issue.fields.summary}\n'
-        content += f'Description = {issue.fields.description}\n'
-        content += f'Votes = {issue.fields.votes.votes}\n'
-        content += f'Created = {created_dtime.strftime("%d-%m-%Y %H:%M:%S")}\n'
-        content += f'========================================\n'
-        print(content)
-    elif issues and single:
-      single_issue = f'Project name = {issues.fields.project}\n'
-      single_issue += f'Ticket number = {issues}\n'
-      single_issue += f'Creator = {issues.fields.creator}\n'
-      single_issue += f'IssueType = {issues.fields.issuetype.name}\n'
-      single_issue += f'Status = {issues.fields.status.name}\n'
-      single_issue += f'Summary = {issues.fields.summary}\n'
-      single_issue += f'Description = {issues.fields.description}\n'
-      single_issue += f'Issue Link = {MAIN_URL}rest/api/3/issue/{self.args.issueKey}'
+        self.data_template(issue=issue)
+    else:
+      self.data_template(issue=issues)
+
+  def data_template(self, issue):
+    if issue:
+      created_dtime = self.date_formatter(issue.fields.created)
+      single_issue = f'Issue Link = {MAIN_URL}rest/api/3/issue/{self.args.issueKey}'
+      single_issue += f'Project name = {issue.fields.project}\n'
+      single_issue += f'Ticket number = {issue}\n'
+      single_issue += f'Creator = {issue.fields.creator}\n'
+      single_issue += f'IssueType = {issue.fields.issuetype.name}\n'
+      single_issue += f'Status = {issue.fields.status.name}\n'
+      single_issue += f'Summary = {issue.fields.summary}\n'
+      single_issue += f'Description = {issue.fields.description}\n'
+      single_issue += f'Votes = {issue.fields.votes.votes}\n'
+      single_issue += f'Created = {created_dtime.strftime("%d-%m-%Y %H:%M:%S")}\n'
+
+      comments = self.comments(issue_key=issue.key)
+      if comments:
+        single_issue += "Comments:\n"
+        single_issue += "------------"
+        for id, comment in enumerate(comments, 1):
+          single_issue += f"\n({id})- By %s: %s" % (comment.author.displayName, comment.body)
+
       print(single_issue)
+      print("==================================")
+
+  def comments(self, issue_key):
+    comments = self.auth.comments(issue_key)
+    return comments
+
+  @staticmethod
+  def date_formatter(date) -> Any:
+    return dtime.parse(date)
+
+  @staticmethod
+  def getter(args):
+    """
+      Future function to convert dictionary keys into properties
+    """
+    return namedtuple('Dict', ' '.join(list(args.keys())))(**args)
 
   @property
   def auth(self):
-    '''
+    """
       Basic authorization for JIRA
-    '''
+    """
     auth_jira = JIRA(MAIN_URL, basic_auth=(AUTH_USER, AUTH_TOKEN))
     return auth_jira
-
-  def dtime_formater(self, date) -> str:
-    return dtime.parse(date)
-
-  def getter(self, args):
-    '''
-      Future function to convert dictionary keys into properties
-    '''
-    return namedtuple('Dict', ' '.join(list(args.keys())))(**args)
 
 
 def main_func(args):
@@ -259,6 +288,8 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(prog='JIRA Command Line Interface')
   parser.add_argument('--issueKey', dest="issueKey", help='issue key or id')
   parser.add_argument('--projectKey', dest="projectKey", help='issue key or id')
+  parser.add_argument('--offset', dest="offset", help='Define offset of limit start')
+  parser.add_argument('--limit', dest="limit", help='Define size of issues')
 
   # Create issue
   parser.add_argument('--create', action='store_true', help='create an issue')
@@ -313,4 +344,4 @@ if __name__ == '__main__':
 
   args = parser.parse_args()
 
-  main_func(args)
+  main_func(args=args)
