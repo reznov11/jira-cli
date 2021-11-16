@@ -5,7 +5,7 @@ JIRA Command Line Interface
 `python3 -m pip install -r requirements.txt`
 
 ### Show script help
-`python akcli.py -h`
+`akcli -h`
 
 ### Dump projects
 `akcli --dump projects`
