@@ -1,13 +1,14 @@
-#!/usr/local/bin/python
-
 import time
 import argparse
+import argcomplete
 from jira import JIRA
 from typing import Any
+
+from pip._internal.req.req_file import build_parser
+
 from config.settings import *
 import dateutil.parser as dtime
 from collections import namedtuple
-from jira.exceptions import JIRAError
 
 
 class JiraCli:
@@ -15,28 +16,29 @@ class JiraCli:
     self.args = args
 
   def create(self):
-    '''
+    """
       Create new issue by providing dictionary of data
       Here I faced a problem, by using REST API service
       creating a new issue continuously returning 400 error from the server says
       transition and assigner missing, by that I decided to use jira library for the whole project
       but in the upcoming versions I'll resolve the problem.
-    '''
+    """
     issue_dict = {
       'project': {'key': f"{self.args.projectKey}"},
-      'summary': self.args.issueSummary or '',
-      'description': self.args.issueDescription,
-      'issuetype': {'name': self.args.issueType},
+      'summary': ' '.join(string for string in self.args.summary) or '',
+      'description': ' '.join(string for string in self.args.description),
+      'issuetype': {'name': self.args.type},
+      'environment': self.args.environment,
     }
     print('Create issue:', issue_dict)
     new_issue = self.auth.create_issue(fields=issue_dict)
     print('\nIssue created successfully, issue key:', new_issue, '\n')
 
   def dump(self):
-    '''
+    """
       Dump data of the given parameter
       issues or projects
-    '''
+    """
     if self.args.dump == 'projects':
       projects = self.auth.projects()
       for project in projects:
@@ -54,47 +56,47 @@ class JiraCli:
       self.get_data(issues=issues, single=False if isinstance(issues, list) else True)
 
   def transition(self):
-    '''
+    """
       Implement transition on issue
       To Do = 11
       In Progress = 21
       In Review = 31
       Done = 41 or 31
-    '''
+    """
     if self.args.transitionId:
       issue = self.auth.issue(self.args.issueKey)
       transitions = self.auth.transitions(issue)
       self.auth.transition_issue(self.args.issueKey, self.args.transitionId)
 
   def delete(self):
-    '''
+    """
       Delete an issue by the given issueKey
-    '''
+    """
     if self.args.issueKey:
       issue = self.auth.issue(self.args.issueKey)
       issue.delete()
 
   def close(self):
-    '''
+    """
       Close an issue by sitting it status to Done
-    '''
+    """
     if self.args.issueKey:
       issue = self.auth.issue(self.args.issueKey)
       transitions = self.auth.transitions(issue)
       self.auth.transition_issue(self.args.issueKey, '81')
 
   def comment(self):
-    '''
+    """
       Comment on issue
-    '''
+    """
     if self.args.issueKey:
       self.auth.add_comment(self.args.issueKey, self.args.commentBody)
       # visibility={'type': 'role', 'value': 'Administrator'
 
   def assign(self):
-    '''
+    """
       Assign issue to new user
-    '''
+    """
     if self.args.assign:
       if not self.args.accountId:
         print('Please type the user name who you want to assign the issue to.')
@@ -174,11 +176,11 @@ class JiraCli:
         print('--------------------')
 
   def global_search(self, jql_query):
-    '''
+    """
       Here we check if the user provided a limit size to get issues
     :param jql_query:
     :return:
-    '''
+    """
 
     # Think of an offset as page number
     # from where to start the next object
@@ -213,6 +215,8 @@ class JiraCli:
       single_issue += f'Summary = {issue.fields.summary}\n'
       single_issue += f'Description = {issue.fields.description}\n'
       single_issue += f'Votes = {issue.fields.votes.votes}\n'
+      if issue.fields.environment:
+        single_issue += f'Environment = {issue.fields.environment}\n'
       single_issue += f'Created = {created_dtime.strftime("%d-%m-%Y %H:%M:%S")}\n'
 
       comments = self.comments(issue_key=issue.key)
@@ -253,9 +257,10 @@ def main_func(args):
   """
   Initialize main class
   """
-  akcli = JiraCli(args)
+  akcli = JiraCli(args=args)
 
   if args.create:
+    print(args.create)
     akcli.create()
 
   if args.dump:
@@ -295,17 +300,19 @@ if __name__ == '__main__':
   parser.add_argument('--create', action='store_true', help='create an issue')
   create_sub_parse = parser.add_subparsers(help='sub commands for creating issue')
   sub_create = create_sub_parse.add_parser('issue', help='create issue is sub-command with sub-commands')
-  sub_create.add_argument('--issueType', required=True, type=str, help='issue type')
-  sub_create.add_argument('--issueDescription', required=True, type=str, help='issue description')
-  sub_create.add_argument('--issueSummary', required=True, type=str, help='issue summary')
+  sub_create.add_argument('--type', required=True, type=str, help='issue type')
+  sub_create.add_argument('--description', required=True, type=str, nargs='*', help='issue description')
+  sub_create.add_argument('--summary', required=True, type=str, nargs='*', help='issue summary')
+  sub_create.add_argument('--environment', required=True, type=str, help='issue environment')
 
   # Dump issue
-  parser.add_argument('--dump',
-                      default=None,
-                      nargs='?',
-                      choices=['issues', 'projects'],
-                      help='dump projects, issues, (default: %(default)s)'
-                      )
+  parser.add_argument(
+    '--dump',
+    default=None,
+    nargs='?',
+    choices=['issues', 'projects'],
+    help='dump projects, issues, (default: %(default)s)'
+  )
 
   # Delete issue
   parser.add_argument('--delete', action='store_true', help='delete an issue')
@@ -342,6 +349,7 @@ if __name__ == '__main__':
   parser.add_argument('--status', help='Filter by status')
   parser.add_argument('--unassigned', action="store_true", help='Filter by unassigned issues')
 
+  argcomplete.autocomplete(parser)
   args = parser.parse_args()
 
   main_func(args=args)
