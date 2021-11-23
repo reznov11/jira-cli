@@ -17,7 +17,9 @@ JIRA Command Line Interface
 `akcli --dump issues --issueKey=PUT ISSUE KEY`
 
 ### Create an issue
-`akcli --projectKey=PUT PROJECT KEY` --create issue --issueSummary=YOUR SUMMARY --issueDescription=YOUR DESCRIPTION --issueType=TYPE OF ISSUE
+`akcli --projectKey=PUT PROJECT KEY` --create issue --summary YOUR SUMMARY --description YOUR DESCRIPTION --type TYPE OF ISSUE
+
+If you want to use environment, just type `--environment YOUR ENVIRONMENT`
 
 ### Transit an issue
 
